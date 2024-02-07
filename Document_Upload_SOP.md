@@ -1,6 +1,6 @@
 # Document Upload SOP
 
-This Standard Operating Procedure (SOP) provides guidelines for the systematic upload and management of documents. It is designed to ensure consistency, accuracy, and traceability of documents uploaded to the repository.
+This Standard Operating Procedure (SOP) provides guidelines for the systematic upload and management of documents. It is designed to ensure consistency, accuracy, and traceability of documents uploaded to the platform.
 
 ## 1. Title Determination
 
