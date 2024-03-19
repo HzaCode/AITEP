@@ -1,0 +1,29 @@
+Function UpdateDosesWithQuotesAndBrackets(originalString As String) As String
+    Const MULTIPLIER As Double = 5
+    Dim compoundArray() As String
+    Dim updatedString As String
+    Dim part As Variant
+    Dim dosePart As String
+    Dim namePart As String
+    Dim doseValue As Double
+
+    originalString = Mid(originalString, 2, Len(originalString) - 2)
+    compoundArray = Split(originalString, """,""")
+
+    For Each part In compoundArray
+        parts = Split(part, "丨")
+        If UBound(parts) >= 1 Then
+            namePart = parts(0)
+            dosePart = parts(1)
+            doseValue = Val(dosePart)
+            doseValue = doseValue * MULTIPLIER
+            If updatedString = "" Then
+                updatedString = """" & namePart & "丨" & doseValue & "mg"""
+            Else
+                updatedString = updatedString & ",""" & namePart & "丨" & doseValue & "mg"""
+            End If
+        End If
+    Next part
+
+    UpdateDoses= "[" & updatedString & "]"
+End Function
