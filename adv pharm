@@ -1,0 +1,29 @@
+Function InsertPipe(cell As Range) As String
+    Dim inputString As String
+    Dim outputString As String
+    Dim i As Integer
+    Dim inNumber As Boolean
+    
+    inputString = cell.Value
+    inNumber = False
+    
+    ' Iterate over each character in the string
+    For i = 1 To Len(inputString)
+        ' Check if current character is a digit or a period (assuming decimal numbers)
+        If IsNumeric(Mid(inputString, i, 1)) Or Mid(inputString, i, 1) = "." Then
+            ' If we find a number and we are not already in a number
+            ' We append a pipe and set the inNumber flag to True
+            If Not inNumber Then
+                outputString = outputString & "丨"
+                inNumber = True
+            End If
+        Else
+            ' If current character is not a number and inNumber is True, reset the flag
+            If inNumber Then inNumber = False
+        End If
+        ' Append the current character to the output string
+        outputString = outputString & Mid(inputString, i, 1)
+    Next i
+    
+    InsertPipe = outputString
+End Function
