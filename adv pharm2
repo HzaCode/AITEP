@@ -1,4 +1,4 @@
-Function UpdateDosesWithQuotesAndBrackets(originalString As String) As String
+Function UpdateDoses(originalString As String) As String
     Const MULTIPLIER As Double = 5
     Dim compoundArray() As String
     Dim updatedString As String
