@@ -1,0 +1,41 @@
+Function AdjustDosageForCell(drugInfo As String, unit As String) As String
+    Dim drugEntries As Variant
+    drugEntries = Split(Mid(drugInfo, 2, Len(drugInfo) - 2), """,""")
+    Dim adjustedEntries As String
+    adjustedEntries = "["
+    Dim i As Integer
+    For i = LBound(drugEntries) To UBound(drugEntries)
+        Dim entry As String
+        entry = drugEntries(i)
+        Dim dosageStart As Integer
+        For dosageStart = 1 To Len(entry)
+            If IsNumeric(Mid(entry, dosageStart, 1)) Or Mid(entry, dosageStart, 1) = "." Then
+                Exit For
+            End If
+        Next
+        Dim drugName As String
+        drugName = Trim(Left(entry, dosageStart - 1))
+        Dim dosageAndUnit As String
+        dosageAndUnit = Mid(entry, dosageStart)
+        Dim adjustedDosage As String
+        If unit = "ml" Then
+            Dim dosage As Double
+            dosage = Val(dosageAndUnit) * 5
+            adjustedDosage = dosage & Mid(dosageAndUnit, InStr(1, dosageAndUnit, "m"))
+        Else
+            adjustedDosage = dosageAndUnit
+        End If
+        If i > LBound(drugEntries) Then
+            adjustedEntries = adjustedEntries & ", "
+        End If
+        adjustedEntries = adjustedEntries & """" & drugName & "|" & adjustedDosage & """"
+    Next i
+    adjustedEntries = adjustedEntries & "]"
+    If Left(adjustedEntries, 2) = "[""" Then
+        adjustedEntries = "[" & Mid(adjustedEntries, 3)
+    End If
+    If Right(adjustedEntries, 2) = """]" Then
+        adjustedEntries = Left(adjustedEntries, Len(adjustedEntries) - 2) & "]"
+    End If
+    AdjustDosageForCell = adjustedEntries
+End Function
