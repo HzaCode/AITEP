@@ -1,0 +1,24 @@
+Function FormatMedicationEntry(cellContent As String) As String
+    Dim regex As Object, matches As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    
+    With regex
+        .Global = True
+        .IgnoreCase = True
+        .Pattern = "([^,|\[\]]+)\s*\|\s*([^,|\[\]]+)"
+    End With
+    
+    Dim result As String
+    result = ""
+    
+    If regex.Test(cellContent) Then
+        Set matches = regex.Execute(cellContent)
+        Dim match As Object
+        For Each match In matches
+            result = result & """" & match.SubMatches(0) & "|" & match.SubMatches(1) & """, "
+        Next match
+        If Len(result) > 0 Then result = Left(result, Len(result) - 2)
+    End If
+    
+    FormatMedicationEntry = "[" & result & "]"
+End Function
