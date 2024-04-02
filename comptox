@@ -1,0 +1,122 @@
+import requests
+import pandas as pd
+
+def fetch_CID_no(apid):
+
+    api_endpoint = 
+    try:
+        response = requests.get(api_endpoint, params={'APID': apid})
+        response.raise_for_status()
+        drug_details = response.json().get('content', None)
+        if drug_details and 'CID' in drug_details:
+            return drug_details['CID']
+        else:
+            return None
+    except requests.RequestException as e:
+        print(f"Failed to fetch CID number for APID: {apid} due to: {e}")
+        return None
+
+def fetch_inchikey_by_cid(cid):
+
+    pubchem_endpoint = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid}/property/InChIKey/JSON"
+    try:
+        response = requests.get(pubchem_endpoint)
+        response.raise_for_status()
+        data = response.json()
+        inchikey = data['PropertyTable']['Properties'][0]['InChIKey']
+        return inchikey
+    except requests.RequestException as e:
+        print(f"Failed to fetch InChIKey for CID: {cid} due to: {e}")
+        return None
+
+
+
+
+def search_comptox_for_inchikey(inchikey):
+ 
+    search_url = f"https://comptox.epa.gov/dashboard-api/ccdapp1/search/chemical/equal-with-detail/{inchikey}"
+    try:
+        response = requests.get(search_url)
+        response.raise_for_status()
+        data = response.json()
+        if data:
+            dtxsid = data[0].get("dtxsid")
+            if dtxsid:
+                detailed_url = f"https://comptox.epa.gov/dashboard/chemical/details/{dtxsid}"
+                return detailed_url, dtxsid
+            else:
+                return "No matching DTXSID found.", None
+        else:
+            return "No results returned from search.", None
+    except requests.RequestException as e:
+        print(f"Failed to search CompTox Dashboard due to: {e}")
+        return None, None
+
+def verify_link(url):
+  
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        if response.status_code == 200:
+            return True
+        else:
+            return False
+    except requests.RequestException:
+        return False
+
+def main():
+    total_apids = 
+    results = []
+
+    for i in range(1, total_apids + 1):
+        apid = f"A{str(i).zfill(5)}"
+        cid = fetch_CID_no(apid)
+        if cid:
+            inchikey = fetch_inchikey_by_cid(cid)
+            if inchikey:
+                comptox_link, dtxsid = search_comptox_for_inchikey(inchikey)
+             
+                link_valid = verify_link(comptox_link) if comptox_link and comptox_link.startswith("https") else False
+                results.append({
+                    'APID': apid,
+                    'CID': cid,
+                    'InChIKey': inchikey,
+                    'CompTox Link': comptox_link if link_valid else "Invalid link",
+                    'DTXSID': dtxsid,
+                    'Link Valid': "Yes" if link_valid else "No"
+                })
+                print(f"APID: {apid}, CompTox Link: {comptox_link}, DTXSID: {dtxsid}, Link Valid: {'Yes' if link_valid else 'No'}")
+            else:
+                print(f"Failed to fetch InChIKey for APID: {apid}, CID: {cid}")
+        else:
+            print(f"Failed to fetch CID for APID: {apid}")
+
+if __name__ == "__main__":
+    main()
+    
+   
+    df = pd.DataFrame(results)
+    excel_filename = 'chemicals_info_comptox.xlsx'
+    df.to_excel(excel_filename, index=False)
+    print(f"Excel file '{excel_filename}' created successfully.")
+
+
+
+
+
+"""
+apid = "A00006"
+cid = fetch_CID_no(apid)
+
+if cid:
+    inchikey = fetch_inchikey_by_cid(cid)
+    if inchikey:
+        comptox_link, dtxsid = search_comptox_for_inchikey(inchikey)
+       
+        link_valid = verify_link(comptox_link) if comptox_link and comptox_link.startswith("https") else False
+        print(f"APID: {apid}, CompTox Link: {comptox_link}, DTXSID: {dtxsid}, Link Valid: {'Yes' if link_valid else 'No'}")
+    else:
+        print(f"Failed to fetch InChIKey for APID: {apid}, CID: {cid}")
+else:
+    print(f"Failed to fetch CID for APID: {apid}")
+
+     """
