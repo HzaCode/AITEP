@@ -2,21 +2,6 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 
-def fetch_cas_no(apid):
- 
-    api_endpoint =
-    try:
-        response = requests.get(api_endpoint, params={'APID': apid})
-        response.raise_for_status()
-        drug_details = response.json().get('content', None)
-        if drug_details and 'CAS_No' in drug_details:
-            return drug_details['CAS_No']
-        else:
-            return None
-    except requests.RequestException as e:
-        print(f"Failed to fetch CAS number for APID: {apid} due to: {e}")
-        return None
-
 def fetch_and_construct_chemical_url(cas_number):
     url = "https://oehha.ca.gov/views/ajax"
     headers = {
@@ -31,54 +16,55 @@ def fetch_and_construct_chemical_url(cas_number):
         "combine": cas_number,
         "view_name": "chemicals",
         "view_display_id": "block_10",
-     
     }
-
-   
     response = requests.post(url, headers=headers, data=payload)
-
     if response.status_code == 200:
         response_data = response.json()
-     
         for item in response_data:
             if item.get("command") == "insert":
                 html_data = item.get("data")
                 soup = BeautifulSoup(html_data, 'html.parser')
-             
                 chemical_link_element = soup.select_one("table tbody tr td a")
                 if chemical_link_element:
-              
                     relative_path = chemical_link_element.get('href')
                     if relative_path:
-                     
                         full_url = f"https://oehha.ca.gov{relative_path}"
-                        print(f"Full URL: {full_url}")
                         return full_url
                 else:
-                    print("Chemical link not found in the provided HTML data.")
                     return None
     else:
-        print(f"Failed to fetch data, status code: {response.status_code}")
         return None
-def main():
-    total_apids = 
-    results = []
 
+#fetch_and_construct_chemical_url("154229-18-2")
+
+def fetch_cas_no(apid):
+    api_endpoint =
+    response = requests.get(api_endpoint, params={'APID': apid})
+    if response.status_code == 200:
+        drug_details = response.json().get('content', None)
+        if drug_details and 'CAS_No' in drug_details:
+            return drug_details['CAS_No']
+    return None
+
+def main():
+    total_apids = 10
+    results = []
     for i in range(1, total_apids + 1):
         apid = f"A{str(i).zfill(5)}"
         cas_number = fetch_cas_no(apid)
         if cas_number:
             chemical_url = fetch_and_construct_chemical_url(cas_number)
-            results.append({
-                'APID': apid,
-                'CAS_No': cas_number,
-                'Chemical URL': chemical_url
-            })
-            print(f"APID: {apid}, CAS_No: {cas_number}, Chemical URL: {chemical_url}")
+            if chemical_url:
+                results.append({
+                    'APID': apid,
+                    'CAS_No': cas_number,
+                    'Chemical URL': chemical_url
+                })
+                print(f"APID: {apid}, CAS_No: {cas_number}, Chemical URL: {chemical_url}")
+            else:
+                print(f"Chemical URL not found for APID: {apid}, CAS_No: {cas_number}")
         else:
-            print(f"Failed to fetch CAS number for APID: {apid}")
-
-
+            print(f"CAS number not found for APID: {apid}")
     df = pd.DataFrame(results)
     excel_filename = 'chemicals_info_oehha.xlsx'
     df.to_excel(excel_filename, index=False)
