@@ -1,0 +1,46 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import pandas as pd
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import quote
+
+def check_url_with_selenium(url):
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)   
+    driver.get(url)
+    driver.implicitly_wait(10)   
+    page_source = driver.page_source
+    driver.quit()   
+    if "We're sorry, the page you're looking for cannot be found." in page_source:
+        return False
+    else:
+        return True
+
+def build_url(drug_name):
+    base_url = "https://www.mims.com/hongkong/drug/info/"
+    encoded_name = quote(drug_name)
+    return f"{base_url}{encoded_name}"
+
+def main():
+    file_path = 'path/to/your/excel.xlsx'
+    output_path = 'path/to/your/output.xlsx'   
+    df = pd.read_excel(file_path)
+    urls = df['Drug Name'].apply(build_url)   
+    df['Page Found'] = False   
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_url = {executor.submit(check_url_with_selenium, url): idx for idx, url in enumerate(urls)}       
+        for future in tqdm(as_completed(future_to_url), total=len(future_to_url), desc="Checking URLs"):
+            idx = future_to_url[future]
+            try:
+                result = future.result()
+                df.at[idx, 'Page Found'] = result
+            except Exception as exc:
+                print(f'URL at index {idx} generated an exception: {exc}')   
+    df.to_excel(output_path, index=False)
+    print(f"Results are saved to {output_path}")
+
+if __name__ == "__main__":
+    main()
