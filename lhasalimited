@@ -1,0 +1,124 @@
+import requests
+import pandas as pd
+import logging
+import os
+import json
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import sleep, time
+import configparser  
+
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('ChemicalDataFetcher')
+
+cache = {}  
+def fetch_CAS_No_no(apid):
+   
+    if apid in cache:  
+        return cache[apid]
+    
+    api_endpoint = config['API']['Endpoint']
+    retries = int(config['API']['Retries'])
+    delay = int(config['API']['Delay'])
+    
+    for attempt in range(retries):
+        try:
+            response = requests.get(api_endpoint, params={'APID': apid})
+            response.raise_for_status()
+            drug_details = response.json().get('content', None)
+            if drug_details and 'CAS_No' in drug_details:
+                CAS_No = drug_details['CAS_No']
+                cache[apid] = CAS_No 
+                return CAS_No
+            else:
+                return None
+        except requests.RequestException as e:
+            logger.error(f"Failed to fetch CAS_No number for APID: {apid} due to: {e}")
+            sleep(delay)
+    return None
+
+def fetch_detailed_url(cas_number, retries=3, delay=2):
+    url = "https://carcdb-backend.lhasalimited.org/api/v1/search"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "casNumberOrName": cas_number,
+        "structureSearchRequest": {
+            "structureXml": None,
+            "structureSearchType": "EXACT_MATCH",
+            "similarity": "80"
+        }
+    }
+    
+    for attempt in range(retries):
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            logger.info(f"Attempt {attempt + 1}/{retries} for CAS: {cas_number}. Status Code: {response.status_code}")
+            if response.status_code == 200:
+                data = response.json()
+                if data and "id" in data[0]:
+                    detailed_url = f"https://carcdb.lhasalimited.org/study-information/{data[0]['id']}"
+                    logger.info(f"Constructed URL for CAS: {cas_number}: {detailed_url}")
+                    return detailed_url
+                else:
+                    logger.warning(f"ID not found in response data for CAS: {cas_number}")
+                    return "No URL Found"
+            else:
+                logger.warning(f"Request failed for CAS: {cas_number}, status code: {response.status_code}")
+        except RequestException as e:
+            logger.error(f"Request error: {e} for CAS: {cas_number}")
+            sleep(delay)
+    return "Error during request"
+
+def process_apids_and_fetch_urls(total_apids, workers=10):
+    CAS_No_apid_list = []
+    
+    logger.info("Fetching CAS_No numbers for APIDs...")
+    for i in range(1, total_apids + 1):
+        apid = f"A{str(i).zfill(5)}"
+        CAS_No = fetch_CAS_No_no(apid)
+        if CAS_No:
+            CAS_No_apid_list.append({'CAS_No': CAS_No, 'APID': apid})
+            logger.info(f"Processed APID: {apid} with CAS_No: {CAS_No}")
+        else:
+            logger.warning(f"No CAS_No found for APID: {apid}")
+    
+    if CAS_No_apid_list:
+        logger.info("Fetching detailed URLs for CAS_No numbers...")
+        df = pd.DataFrame(CAS_No_apid_list)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_CAS_No = {executor.submit(fetch_detailed_url, item['CAS_No']): item for item in CAS_No_apid_list}
+            for future in tqdm(as_completed(future_to_CAS_No), total=len(future_to_CAS_No), desc="Fetching URLs"):
+                item = future_to_CAS_No[future]
+                try:
+                    detailed_url = future.result()
+                    df.loc[df['CAS_No'] == item['CAS_No'], 'Detailed URL'] = detailed_url
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e} for CAS_No: {item['CAS_No']}")
+                    df.loc[df['CAS_No'] == item['CAS_No'], 'Detailed URL'] = "Error"
+        return df
+    else:
+        logger.warning("No CAS_No numbers found for any APID.")
+        return pd.DataFrame()  
+
+
+
+
+
+def main():
+    total_apids = int(config['DEFAULT']['TotalAPIDs'])
+    output_file_path = config['DEFAULT']['OutputFilePath']
+    
+    df = process_apids_and_fetch_urls(total_apids)
+    if not df.empty:
+        df.to_excel(output_file_path, index=False)
+        logger.info(f"Results have been saved to {output_file_path}")
+    else:
+        logger.info("No data to save.")
+
+if __name__ == "__main__":
+    main()
