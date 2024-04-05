@@ -1,0 +1,69 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from tqdm import tqdm
+
+def fetch_search_results(cas_no):
+    base_url = "https://merckindex.rsc.org/search-results"
+    headers = {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8,zh-TW;q=0.7,zh;q=0.6",
+        "Cache-Control": "no-cache",
+        "Cookie": "",
+        "Dnt": "1",
+        "Pragma": "no-cache",
+        "Sec-Ch-Ua": "\"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": "\"Windows\"",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    }
+    params = {
+        "sn": "",
+        "crn": cas_no,
+        "lrn": "",
+        "vu": "",
+        "nmu": "",
+        "m": "",
+        "s": "",
+        "mf": "",
+        "mw": "",
+        "mwv": "",
+    }
+
+    response = requests.get(base_url, headers=headers, params=params)
+    if response.ok:
+        return response.text
+    else:
+        return "Failed to fetch data"
+
+def parse_html(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    link = soup.find('a', class_='capsule-link')
+    if link:
+        return link['href']
+    else:
+        return "No link found"
+
+excel_path = 
+df = pd.read_excel(excel_path, usecols=['CAS_No'])
+df['CAS_No'] = df['CAS_No'].astype(str)
+
+results = []
+
+for cas_no in tqdm(df['CAS_No'], desc="Processing CAS Numbers"):
+    html_content = fetch_search_results(cas_no)
+    result = parse_html(html_content)
+    results.append({'CAS_No': cas_no, 'Result': result})
+
+results_df = pd.DataFrame(results)
+
+output_excel_path = 
+results_df.to_excel(output_excel_path, index=False)
+
+print(f"Results have been written to {output_excel_path}")
