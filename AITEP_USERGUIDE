@@ -1,0 +1,49 @@
+import subprocess
+import argparse
+import os
+
+def convert_md_to_docx(md_file, output_file, template_file):
+ 
+  
+    command = [
+        'pandoc',
+        md_file,
+        '-o',
+        output_file,
+        '--reference-doc=' + template_file,
+        '--toc'  # Add table of contents
+    ]
+    
+    try:
+    
+        subprocess.run(command, check=True)
+        print(f"Successfully converted {md_file} to {output_file} with a table of contents.")
+        print("Please check the output Word file to ensure the TOC, font size, and page numbers are correct.")
+    except subprocess.CalledProcessError as e:
+        print(f"Conversion failed: {e}")
+        print("Check if the file paths or Pandoc command is correct.")
+    except FileNotFoundError:
+        print("Pandoc is not installed or not found in the system PATH. Please install Pandoc first.")
+
+def main():
+  
+    parser = argparse.ArgumentParser(description="Convert a Markdown file to a Word document with a TOC using a template.")
+    parser.add_argument('md_file', help="Path to the Markdown file")
+    parser.add_argument('output_file', help="Path to the output Word document")
+    parser.add_argument('template_file', help="Path to the Word template file")
+    
+    # Parse the arguments
+    args = parser.parse_args()
+    
+
+    if not os.path.exists(args.md_file):
+        print(f"Error: Markdown file {args.md_file} does not exist.")
+        return
+    if not os.path.exists(args.template_file):
+        print(f"Error: Template file {args.template_file} does not exist.")
+        return
+    
+    convert_md_to_docx(args.md_file, args.output_file, args.template_file)
+
+if __name__ == "__main__":
+    main()
