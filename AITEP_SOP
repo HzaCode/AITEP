@@ -1,0 +1,82 @@
+import requests
+import os
+import re
+import subprocess
+
+def download_and_replace_images(md_file, output_dir):
+    with open(md_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    image_matches = re.findall(r'(!\[.*?\])\((https://gaudy-pipe-239\.notion\.site/image/.*?)\)', content)
+
+    if not image_matches:
+        print("No image URLs found in the Markdown file.")
+        return md_file
+
+    for i, (alt_text, url) in enumerate(set(image_matches)):
+        local_name = f"image{i+1}.png"
+        local_path = os.path.join(output_dir, local_name)
+        
+        try:
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200:
+                with open(local_path, 'wb') as img_file:
+                    img_file.write(response.content)
+                print(f"Downloaded {url} to {local_path}")
+                old_ref = f"{alt_text}({url})"
+                new_ref = f"{alt_text}({local_name})"
+                content = content.replace(old_ref, new_ref)
+            else:
+                print(f"Failed to download {url} (Status code: {response.status_code})")
+        except requests.RequestException as e:
+            print(f"Error downloading {url}: {e}")
+
+    temp_md_file = md_file.replace('.md', '_temp.md')
+    with open(temp_md_file, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"Saved updated Markdown to {temp_md_file}")
+    return temp_md_file
+
+def convert_to_docx(md_file, output_docx, template_file, working_dir):
+    if os.path.exists(output_docx):
+        try:
+            os.remove(output_docx)
+            print(f"Removed existing file {output_docx} to avoid conflicts")
+        except PermissionError:
+            print(f"Error: {output_docx} is open or locked, please close it and retry")
+            return
+
+    os.chdir(working_dir)
+    command = [
+        'pandoc',
+        md_file,
+        '-o',
+        output_docx,
+        '--reference-doc=' + template_file
+    ]
+    
+    try:
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        print(f"Successfully converted {md_file} to {output_docx}")
+        print(f"Pandoc output: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        print(f"Conversion failed: {e}")
+        print(f"Error output: {e.stderr}")
+    except FileNotFoundError:
+        print("Pandoc not found. Please install Pandoc.")
+
+md_file = r""
+output_dir = r""
+output_docx = r""
+template_file = r""
+
+if not os.path.exists(md_file):
+    print(f"Markdown file not found: {md_file}")
+elif not os.path.exists(template_file):
+    print(f"Template file not found: {template_file}")
+else:
+    temp_md_file = download_and_replace_images(md_file, output_dir)
+    convert_to_docx(temp_md_file, output_docx, template_file, output_dir)
+    if os.path.exists(temp_md_file):
+        os.remove(temp_md_file)
+        print(f"Cleaned up temporary file: {temp_md_file}")
