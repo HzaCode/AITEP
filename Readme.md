@@ -36,5 +36,5 @@
 <br>
 
 <div align="center">
-<sub>Built for pharmaceutical regulatory professionals</sub>
+<sub>Built for pharmaceutical regulatory compliance</sub>
 </div>
