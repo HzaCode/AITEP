@@ -24,7 +24,7 @@
 | &nbsp; | Capability | Description |
 | :--: | --- | --- |
 | ⚖️ | **Risk‑Based Decision Matrix** | GMP‑calibrated rules identify APIs requiring toxicological evaluation. |
-| 🌐 | **Multi-source Data Integration** | Systematically extracts data from PubMed, EMA, FDA, WHO, and PIC/S databases with complete provenance tracking. |
+| 🌐 | **Multi-source Data Integration** | Systematically extracts data from PubMed, EMA, FDA, WHO, and PIC/S databases with complete provenance tracking. ([DP2 System](https://github.com/HzaCode/DP2_BeginnersGuide)) |
 | 🤖 | **AI / NLP Extraction Engine** | Extracts NO(A)EL, LO(A)EL, dose–response data and units into structured, machine‑readable JSON. |
 | 📋 | **Automated Report Generation** | Generates standardized PDE and toxicological dossiers in PDF and JSON formats. |
 | 📊 | **Interactive Analytics Dashboard** | Real-time visualization of product portfolios, dosage forms, administration routes, and API statistics. |
